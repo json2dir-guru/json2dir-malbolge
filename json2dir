@@ -1,0 +1,37 @@
+#!/bin/sh
+# The Malbolge Unshackled evaluator (json2dir.mal, built from json2dir.c) owns UTF-8 checking,
+# JSON parsing, validation, traversal and shell generation; this launcher only moves bytes
+# and runs the generated script.
+set -eu
+
+if [ "$#" -ne 0 ]; then
+  printf '%s\n' 'Usage: json2dir < file.json' >&2
+  exit 2
+fi
+
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+
+task_tmp=$(umask 077; mktemp -d "${TMPDIR:-/tmp}/json2dir.XXXXXXXXXX")
+trap 'rm -rf -- "$task_tmp"' 0
+trap 'exit 1' HUP INT TERM
+
+if ! (umask 077; cat > "$task_tmp/input.json"); then
+  printf '%s\n' "json2dir: couldn't read stdin" >&2
+  exit 1
+fi
+
+# Malbolge has neither stderr nor an exit status: the evaluator prints either the script,
+# ending with its end marker, or a "json2dir: ..." message, which is passed on to stderr.
+if ! (
+  umask 077
+  "${JSON2DIR_MU:-mu20fast}" "${JSON2DIR_MAL:-$script_dir/json2dir.mal}" \
+    < "$task_tmp/input.json" > "$task_tmp/tree.sh"
+); then
+  exit 1
+fi
+if [ "$(tail -n 1 "$task_tmp/tree.sh")" != '# json2dir: end' ]; then
+  cat "$task_tmp/tree.sh" >&2
+  exit 1
+fi
+
+"${JSON2DIR_SHELL:-/bin/sh}" "$task_tmp/tree.sh"
