@@ -24,7 +24,7 @@ fi
 # ending with its end marker, or a "json2dir: ..." message, which is passed on to stderr.
 if ! (
   umask 077
-  "${JSON2DIR_MU:-mu20fast}" "${JSON2DIR_MAL:-$script_dir/json2dir.mal}" \
+  "${JSON2DIR_MU:-Unshackled-20}" "${JSON2DIR_MAL:-$script_dir/json2dir.mal}" \
     < "$task_tmp/input.json" > "$task_tmp/tree.sh"
 ); then
   exit 1
